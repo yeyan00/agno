@@ -206,7 +206,6 @@ def _run_tasks(
 
     log_debug(f"Team Task Run Start: {run_response.run_id}", center=True)
     memory_future = None
-    learning_future = None
 
     try:
         run_input = cast(TeamRunInput, run_response.input)
@@ -279,13 +278,6 @@ def _run_tasks(
             run_messages=run_messages,
             user_id=user_id,
             existing_future=memory_future,
-        )
-        learning_future = _start_learning_future(
-            team,
-            run_messages=run_messages,
-            session=session,
-            user_id=user_id,
-            existing_future=learning_future,
         )
 
         raise_if_cancelled(run_response.run_id)  # type: ignore
@@ -396,8 +388,8 @@ def _run_tasks(
         raise_if_cancelled(run_response.run_id)  # type: ignore
 
         # Wait for background memory and learning creation
-        wait_for_open_threads(memory_future=memory_future, learning_future=learning_future)  # type: ignore
-        merge_background_metrics(run_response.metrics, collect_background_metrics(memory_future, learning_future))
+        wait_for_open_threads(memory_future=memory_future)  # type: ignore
+        merge_background_metrics(run_response.metrics, collect_background_metrics(memory_future))
 
         raise_if_cancelled(run_response.run_id)  # type: ignore
 
@@ -418,6 +410,15 @@ def _run_tasks(
 
         # Set the run status to completed
         run_response.status = RunStatus.completed
+
+        # Fire-and-forget: start learning extraction after RunCompleted.
+        if team._learning is not None:
+            _start_learning_future(
+                team,
+                run_messages=run_messages,
+                session=session,
+                user_id=user_id,
+            )
 
         # Cleanup and store
         _cleanup_and_store(team, run_response=run_response, session=session)
@@ -469,7 +470,7 @@ def _run_tasks(
 
     finally:
         # Cancel background futures on error
-        for future in (memory_future, learning_future):
+        for future in (memory_future,):
             if future is not None and not future.done():
                 future.cancel()
                 try:
@@ -525,7 +526,6 @@ def _run_tasks_stream(
 
     log_debug(f"Team Task Run (Stream) Start: {run_response.run_id}", center=True)
     memory_future = None
-    learning_future = None
 
     try:
         run_input = cast(TeamRunInput, run_response.input)
@@ -600,13 +600,6 @@ def _run_tasks_stream(
             run_messages=run_messages,
             user_id=user_id,
             existing_future=memory_future,
-        )
-        learning_future = _start_learning_future(
-            team,
-            run_messages=run_messages,
-            session=session,
-            user_id=user_id,
-            existing_future=learning_future,
         )
 
         # Yield run started event
@@ -826,7 +819,6 @@ def _run_tasks_stream(
         yield from wait_for_thread_tasks_stream(
             run_response=run_response,
             memory_future=memory_future,  # type: ignore
-            learning_future=learning_future,  # type: ignore
             stream_events=stream_events,
             events_to_skip=team.events_to_skip,  # type: ignore
             store_events=team.store_events,
@@ -877,6 +869,15 @@ def _run_tasks_stream(
 
         # Set the run status to completed
         run_response.status = RunStatus.completed
+
+        # Fire-and-forget: start learning extraction after RunCompleted.
+        if team._learning is not None:
+            _start_learning_future(
+                team,
+                run_messages=run_messages,
+                session=session,
+                user_id=user_id,
+            )
 
         # Cleanup and store
         _cleanup_and_store(team, run_response=run_response, session=session)
@@ -947,7 +948,7 @@ def _run_tasks_stream(
 
     finally:
         # Cancel background futures on error
-        for future in (memory_future, learning_future):
+        for future in (memory_future,):
             if future is not None and not future.done():
                 future.cancel()
                 try:
@@ -1025,7 +1026,6 @@ def _run(
     log_debug(f"Team Run Start: {run_response.run_id}", center=True)
 
     memory_future = None
-    learning_future = None
     try:
         # Set up retry logic
         num_attempts = team.retries + 1
@@ -1110,13 +1110,6 @@ def _run(
                     user_id=user_id,
                     existing_future=memory_future,
                 )
-                learning_future = _start_learning_future(
-                    team,
-                    run_messages=run_messages,
-                    session=session,
-                    user_id=user_id,
-                    existing_future=learning_future,
-                )
 
                 raise_if_cancelled(run_response.run_id)  # type: ignore
 
@@ -1190,9 +1183,9 @@ def _run(
                 raise_if_cancelled(run_response.run_id)  # type: ignore
 
                 # 11. Wait for background memory creation
-                wait_for_open_threads(memory_future=memory_future, learning_future=learning_future)  # type: ignore
+                wait_for_open_threads(memory_future=memory_future)  # type: ignore
                 merge_background_metrics(
-                    run_response.metrics, collect_background_metrics(memory_future, learning_future)
+                    run_response.metrics, collect_background_metrics(memory_future)
                 )
 
                 raise_if_cancelled(run_response.run_id)  # type: ignore
@@ -1217,6 +1210,15 @@ def _run(
 
                 # Set the run status to completed
                 run_response.status = RunStatus.completed
+
+                # 12b. Fire-and-forget: start learning extraction after RunCompleted.
+                if team._learning is not None:
+                    _start_learning_future(
+                        team,
+                        run_messages=run_messages,
+                        session=session,
+                        user_id=user_id,
+                    )
 
                 # 13. Cleanup and store the run response
                 _cleanup_and_store(team, run_response=run_response, session=session)
@@ -1295,7 +1297,7 @@ def _run(
                 return run_response
     finally:
         # Cancel background futures on error (wait_for_open_threads handles waiting on success)
-        for future in (memory_future, learning_future):
+        for future in (memory_future,):
             if future is not None and not future.done():
                 future.cancel()
                 try:
@@ -1378,7 +1380,6 @@ def _run_stream(
     log_debug(f"Team Run Start: {run_response.run_id}", center=True)
 
     memory_future = None
-    learning_future = None
     try:
         # Set up retry logic
         num_attempts = team.retries + 1
@@ -1463,13 +1464,6 @@ def _run_stream(
                     run_messages=run_messages,
                     user_id=user_id,
                     existing_future=memory_future,
-                )
-                learning_future = _start_learning_future(
-                    team,
-                    run_messages=run_messages,
-                    session=session,
-                    user_id=user_id,
-                    existing_future=learning_future,
                 )
 
                 # Start the Run by yielding a RunStarted event
@@ -1595,14 +1589,13 @@ def _run_stream(
                 yield from wait_for_thread_tasks_stream(
                     run_response=run_response,
                     memory_future=memory_future,  # type: ignore
-                    learning_future=learning_future,  # type: ignore
-                    stream_events=stream_events,
+                            stream_events=stream_events,
                     events_to_skip=team.events_to_skip,  # type: ignore
                     store_events=team.store_events,
                     get_memories_callback=lambda: team.get_user_memories(user_id=user_id),
                 )
                 merge_background_metrics(
-                    run_response.metrics, collect_background_metrics(memory_future, learning_future)
+                    run_response.metrics, collect_background_metrics(memory_future)
                 )
 
                 raise_if_cancelled(run_response.run_id)  # type: ignore
@@ -1652,6 +1645,15 @@ def _run_stream(
 
                 # Set the run status to completed
                 run_response.status = RunStatus.completed
+
+                # 9b. Fire-and-forget: start learning extraction after RunCompleted.
+                if team._learning is not None:
+                    _start_learning_future(
+                        team,
+                        run_messages=run_messages,
+                        session=session,
+                        user_id=user_id,
+                    )
 
                 # 10. Cleanup and store the run response
                 _cleanup_and_store(team, run_response=run_response, session=session)
@@ -1741,7 +1743,7 @@ def _run_stream(
                 yield run_error
     finally:
         # Cancel background futures on error (wait_for_thread_tasks_stream handles waiting on success)
-        for future in (memory_future, learning_future):
+        for future in (memory_future,):
             if future is not None and not future.done():
                 future.cancel()
                 try:
@@ -1993,7 +1995,6 @@ async def _arun_tasks(
 
     log_debug(f"Team Task Run Start: {run_response.run_id}", center=True)
     memory_task = None
-    learning_task = None
     team_session: Optional[TeamSession] = None
 
     try:
@@ -2079,13 +2080,6 @@ async def _arun_tasks(
             run_messages=run_messages,
             user_id=user_id,
             existing_task=memory_task,
-        )
-        learning_task = await _astart_learning_task(
-            team,
-            run_messages=run_messages,
-            session=team_session,
-            user_id=user_id,
-            existing_task=learning_task,
         )
 
         await araise_if_cancelled(run_response.run_id)  # type: ignore
@@ -2194,8 +2188,8 @@ async def _arun_tasks(
         await araise_if_cancelled(run_response.run_id)  # type: ignore
 
         # Wait for background memory and learning creation
-        await_for_open_threads(memory_task=memory_task, learning_task=learning_task)  # type: ignore
-        merge_background_metrics(run_response.metrics, collect_background_metrics(memory_task, learning_task))
+        await_for_open_threads(memory_task=memory_task)  # type: ignore
+        merge_background_metrics(run_response.metrics, collect_background_metrics(memory_task))
 
         await araise_if_cancelled(run_response.run_id)  # type: ignore
 
@@ -2218,6 +2212,15 @@ async def _arun_tasks(
 
         # Set the run status to completed
         run_response.status = RunStatus.completed
+
+        # Fire-and-forget: start learning extraction after RunCompleted.
+        if team._learning is not None:
+            await _astart_learning_task(
+                team,
+                run_messages=run_messages,
+                session=team_session,
+                user_id=user_id,
+            )
 
         # Cleanup and store
         await _acleanup_and_store(team, run_response=run_response, session=team_session)
@@ -2274,7 +2277,7 @@ async def _arun_tasks(
         _disconnect_connectable_tools(team)
         await _disconnect_mcp_tools(team)
         # Cancel background tasks on error
-        for task in (memory_task, learning_task):
+        for task in (memory_task,):
             if task is not None and not task.done():
                 task.cancel()
                 try:
@@ -2329,7 +2332,6 @@ async def _arun_tasks_stream(
 
     log_debug(f"Team Task Run (Async Stream) Start: {run_response.run_id}", center=True)
     memory_task = None
-    learning_task = None
     team_session: Optional[TeamSession] = None
 
     try:
@@ -2416,13 +2418,6 @@ async def _arun_tasks_stream(
             run_messages=run_messages,
             user_id=user_id,
             existing_task=memory_task,
-        )
-        learning_task = await _astart_learning_task(
-            team,
-            run_messages=run_messages,
-            session=team_session,
-            user_id=user_id,
-            existing_task=learning_task,
         )
 
         # Yield run started event
@@ -2644,7 +2639,6 @@ async def _arun_tasks_stream(
         async for event in await_for_thread_tasks_stream(
             run_response=run_response,
             memory_task=memory_task,
-            learning_task=learning_task,
             stream_events=stream_events,
             events_to_skip=team.events_to_skip,  # type: ignore
             store_events=team.store_events,
@@ -2699,6 +2693,15 @@ async def _arun_tasks_stream(
 
         # Set the run status to completed
         run_response.status = RunStatus.completed
+
+        # Fire-and-forget: start learning extraction after RunCompleted.
+        if team._learning is not None:
+            await _astart_learning_task(
+                team,
+                run_messages=run_messages,
+                session=team_session,
+                user_id=user_id,
+            )
 
         # Cleanup and store
         await _acleanup_and_store(team, run_response=run_response, session=team_session)
@@ -2782,12 +2785,6 @@ async def _arun_tasks_stream(
                 await memory_task
             except asyncio.CancelledError:
                 pass
-        if learning_task is not None and not learning_task.done():
-            learning_task.cancel()
-            try:
-                await learning_task
-            except asyncio.CancelledError:
-                pass
 
         await acleanup_run(run_response.run_id)  # type: ignore
 
@@ -2861,7 +2858,6 @@ async def _arun(
 
     log_debug(f"Team Run Start: {run_response.run_id}", center=True)
     memory_task = None
-    learning_task = None
 
     try:
         # Register run for cancellation tracking
@@ -2966,14 +2962,6 @@ async def _arun(
                     user_id=user_id,
                     existing_task=memory_task,
                 )
-                learning_task = await _astart_learning_task(
-                    team,
-                    run_messages=run_messages,
-                    session=team_session,
-                    user_id=user_id,
-                    existing_task=learning_task,
-                )
-
                 await araise_if_cancelled(run_response.run_id)  # type: ignore
                 # 5. Reason about the task if reasoning is enabled
                 await ahandle_reasoning(
@@ -3051,8 +3039,8 @@ async def _arun(
                 await araise_if_cancelled(run_response.run_id)  # type: ignore
 
                 # 11. Wait for background memory creation
-                await await_for_open_threads(memory_task=memory_task, learning_task=learning_task)
-                merge_background_metrics(run_response.metrics, collect_background_metrics(memory_task, learning_task))
+                await await_for_open_threads(memory_task=memory_task)
+                merge_background_metrics(run_response.metrics, collect_background_metrics(memory_task))
 
                 await araise_if_cancelled(run_response.run_id)  # type: ignore
                 # 12. Create session summary
@@ -3074,6 +3062,15 @@ async def _arun(
                 await agenerate_team_followups(team, run_response=run_response)
 
                 run_response.status = RunStatus.completed
+
+                # 12b. Fire-and-forget: start learning extraction after RunCompleted.
+                if team._learning is not None:
+                    await _astart_learning_task(
+                        team,
+                        run_messages=run_messages,
+                        session=team_session,
+                        user_id=user_id,
+                    )
 
                 # 13. Cleanup and store the run response and session
                 await _acleanup_and_store(team, run_response=run_response, session=team_session)
@@ -3160,12 +3157,6 @@ async def _arun(
             memory_task.cancel()
             try:
                 await memory_task
-            except asyncio.CancelledError:
-                pass
-        if learning_task is not None and not learning_task.done():
-            learning_task.cancel()
-            try:
-                await learning_task
             except asyncio.CancelledError:
                 pass
 
@@ -3329,7 +3320,6 @@ async def _arun_stream(
     log_debug(f"Team Run Start: {run_response.run_id}", center=True)
 
     memory_task = None
-    learning_task = None
 
     try:
         # Register run for cancellation tracking
@@ -3431,14 +3421,6 @@ async def _arun_stream(
                     user_id=user_id,
                     existing_task=memory_task,
                 )
-                learning_task = await _astart_learning_task(
-                    team,
-                    run_messages=run_messages,
-                    session=team_session,
-                    user_id=user_id,
-                    existing_task=learning_task,
-                )
-
                 # Yield the run started event
                 if stream_events:
                     yield handle_event(  # type: ignore
@@ -3566,14 +3548,13 @@ async def _arun_stream(
                 async for event in await_for_thread_tasks_stream(
                     run_response=run_response,
                     memory_task=memory_task,
-                    learning_task=learning_task,
-                    stream_events=stream_events,
+                            stream_events=stream_events,
                     events_to_skip=team.events_to_skip,  # type: ignore
                     store_events=team.store_events,
                     get_memories_callback=lambda: team.aget_user_memories(user_id=user_id),
                 ):
                     yield event
-                merge_background_metrics(run_response.metrics, collect_background_metrics(memory_task, learning_task))
+                merge_background_metrics(run_response.metrics, collect_background_metrics(memory_task))
 
                 await araise_if_cancelled(run_response.run_id)  # type: ignore
 
@@ -3625,6 +3606,15 @@ async def _arun_stream(
 
                 # Set the run status to completed
                 run_response.status = RunStatus.completed
+
+                # 9b. Fire-and-forget: start learning extraction after RunCompleted.
+                if team._learning is not None:
+                    await _astart_learning_task(
+                        team,
+                        run_messages=run_messages,
+                        session=team_session,
+                        user_id=user_id,
+                    )
 
                 # 10. Cleanup and store the run response and session
                 await _acleanup_and_store(team, run_response=run_response, session=team_session)
@@ -3730,12 +3720,6 @@ async def _arun_stream(
             memory_task.cancel()
             try:
                 await memory_task
-            except asyncio.CancelledError:
-                pass
-        if learning_task is not None and not learning_task.done():
-            learning_task.cancel()
-            try:
-                await learning_task
             except asyncio.CancelledError:
                 pass
 
