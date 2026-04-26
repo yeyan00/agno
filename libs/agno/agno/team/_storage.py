@@ -626,6 +626,8 @@ def to_dict(team: "Team") -> Dict[str, Any]:
     # --- History settings ---
     if team.add_history_to_context:
         config["add_history_to_context"] = team.add_history_to_context
+    if team.override_member_history is not None:
+        config["override_member_history"] = team.override_member_history
     if team.num_history_runs is not None:
         config["num_history_runs"] = team.num_history_runs
     if team.num_history_messages is not None:
@@ -956,6 +958,7 @@ def from_dict(
             add_learnings_to_context=config.get("add_learnings_to_context", True),
             # --- History settings ---
             add_history_to_context=config.get("add_history_to_context", False),
+            override_member_history=config.get("override_member_history"),
             num_history_runs=config.get("num_history_runs"),
             num_history_messages=config.get("num_history_messages"),
             max_tool_calls_from_history=config.get("max_tool_calls_from_history"),

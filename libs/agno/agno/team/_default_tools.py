@@ -469,8 +469,11 @@ def _get_delegate_task_function(
             )
 
         # 7. Add member-level history for the member if enabled (because we won't load the session for the member, so history won't be loaded automatically)
+        # Team's override_member_history takes precedence over member's own setting
         history = None
-        if hasattr(member_agent, "add_history_to_context") and member_agent.add_history_to_context:
+        member_wants_history = getattr(member_agent, "add_history_to_context", False)
+        should_load_history = team.override_member_history if team.override_member_history is not None else member_wants_history
+        if should_load_history:
             history = _get_history_for_member_agent(team, session, member_agent)
             if history:
                 if isinstance(member_agent_task, str):

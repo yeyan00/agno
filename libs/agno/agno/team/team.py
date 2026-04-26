@@ -331,6 +331,10 @@ class Team:
     # Maximum number of tool calls to include from history (None = no limit)
     max_tool_calls_from_history: Optional[int] = None
 
+    # Override member agents' add_history_to_context when delegating through the team.
+    # None: use member's own setting. True/False: force enable/disable member history.
+    override_member_history: Optional[bool] = None
+
     # --- Team Storage ---
     # Metadata stored with this team
     metadata: Optional[Dict[str, Any]] = None
@@ -498,6 +502,7 @@ class Team:
         num_history_runs: Optional[int] = None,
         num_history_messages: Optional[int] = None,
         max_tool_calls_from_history: Optional[int] = None,
+        override_member_history: Optional[bool] = None,
         skills: Optional[Skills] = None,
         tools: Optional[Union[List[Union[Toolkit, Callable, Function, Dict]], Callable[..., List]]] = None,
         tool_call_limit: Optional[int] = None,
@@ -620,6 +625,7 @@ class Team:
             num_history_runs=num_history_runs,
             num_history_messages=num_history_messages,
             max_tool_calls_from_history=max_tool_calls_from_history,
+            override_member_history=override_member_history,
             skills=skills,
             tools=tools,
             tool_call_limit=tool_call_limit,
