@@ -421,7 +421,10 @@ def get_member_information(team: "Team", run_context: Optional["RunContext"] = N
 
 
 def _get_history_for_member_agent(
-    team: "Team", session: TeamSession, member_agent: Union[Agent, "Team"]
+    team: "Team",
+    session: TeamSession,
+    member_agent: Union[Agent, "Team"],
+    num_history_runs: Optional[int] = None,
 ) -> List[Message]:
     from agno.team.team import Team
 
@@ -438,8 +441,10 @@ def _get_history_for_member_agent(
     # to preserve conversation continuity.
     skip_role = team.system_message_role if team.system_message_role not in ["user", "assistant", "tool"] else None
 
+    effective_num_history_runs = num_history_runs or member_agent.num_history_runs or team.num_history_runs
+
     history = session.get_messages(
-        last_n_runs=member_agent.num_history_runs or team.num_history_runs,
+        last_n_runs=effective_num_history_runs,
         limit=member_agent.num_history_messages,
         skip_roles=[skip_role] if skip_role else None,
         member_ids=[member_agent_id] if member_agent_id else None,

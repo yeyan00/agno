@@ -474,14 +474,10 @@ def _get_delegate_task_function(
         member_wants_history = getattr(member_agent, "add_history_to_context", False)
         should_load_history = team.override_member_history if team.override_member_history is not None else member_wants_history
         if should_load_history:
-            # Use override_member_num_history_runs if set, otherwise fall back to member's own setting
-            if team.override_member_num_history_runs is not None:
-                original_num = member_agent.num_history_runs
-                member_agent.num_history_runs = team.override_member_num_history_runs
-                history = _get_history_for_member_agent(team, session, member_agent)
-                member_agent.num_history_runs = original_num  # restore
-            else:
-                history = _get_history_for_member_agent(team, session, member_agent)
+            history = _get_history_for_member_agent(
+                team, session, member_agent,
+                num_history_runs=team.override_member_num_history_runs,
+            )
             if history:
                 if isinstance(member_agent_task, str):
                     history.append(Message(role="user", content=member_agent_task))
