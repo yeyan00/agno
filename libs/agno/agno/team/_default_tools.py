@@ -472,10 +472,14 @@ def _get_delegate_task_function(
         # Team's override_member_history takes precedence over member's own setting
         history = None
         member_wants_history = getattr(member_agent, "add_history_to_context", False)
-        should_load_history = team.override_member_history if team.override_member_history is not None else member_wants_history
+        should_load_history = (
+            team.override_member_history if team.override_member_history is not None else member_wants_history
+        )
         if should_load_history:
             history = _get_history_for_member_agent(
-                team, session, member_agent,
+                team,
+                session,
+                member_agent,
                 num_history_runs=team.override_member_num_history_runs,
             )
             if history:
