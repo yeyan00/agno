@@ -60,6 +60,32 @@ from agno.utils.team import (
 )
 from agno.utils.timer import Timer
 
+# ---------------------------------------------------------------------------
+# Team → Member run_id mapping for cascade cancellation
+# Maps team_run_id to a set of member_run_ids so that cancelling a team run
+# also cancels all in-flight member runs.
+# ---------------------------------------------------------------------------
+_child_runs_lock = threading.Lock()
+_child_runs: Dict[str, Set[str]] = {}
+
+
+def _register_child_run(team_run_id: str, member_run_id: str) -> None:
+    """Record that a member run belongs to a team run."""
+    with _child_runs_lock:
+        _child_runs.setdefault(team_run_id, set()).add(member_run_id)
+
+
+def _unregister_team_run(team_run_id: str) -> None:
+    """Remove the mapping when a team run finishes (success, error, or cancel)."""
+    with _child_runs_lock:
+        _child_runs.pop(team_run_id, None)
+
+
+def get_child_run_ids(team_run_id: str) -> Set[str]:
+    """Get the set of member run_ids for a team run (for cascade cancel)."""
+    with _child_runs_lock:
+        return set(_child_runs.get(team_run_id, set()))
+
 
 # ---------------------------------------------------------------------------
 # Team → Member run_id mapping for cascade cancellation
@@ -502,10 +528,14 @@ def _get_delegate_task_function(
         # Team's override_member_history takes precedence over member's own setting
         history = None
         member_wants_history = getattr(member_agent, "add_history_to_context", False)
-        should_load_history = team.override_member_history if team.override_member_history is not None else member_wants_history
+        should_load_history = (
+            team.override_member_history if team.override_member_history is not None else member_wants_history
+        )
         if should_load_history:
             history = _get_history_for_member_agent(
-                team, session, member_agent,
+                team,
+                session,
+                member_agent,
                 num_history_runs=team.override_member_num_history_runs,
             )
             if history:

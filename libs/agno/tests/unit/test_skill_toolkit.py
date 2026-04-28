@@ -11,8 +11,7 @@ import pytest
 # Ensure agno is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from agno.tools.skill_toolkit import SkillToolkit, _SkillMeta, _parse_frontmatter, _discover_skills
-
+from agno.tools.skill_toolkit import SkillToolkit, _discover_skills, _parse_frontmatter, _SkillMeta
 
 # ---------------------------------------------------------------------------
 # Fixtures: temp skill directories

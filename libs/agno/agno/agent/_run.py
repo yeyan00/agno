@@ -583,7 +583,7 @@ def _run(
                 wait_for_open_threads(
                     memory_future=memory_future,  # type: ignore
                     cultural_knowledge_future=cultural_knowledge_future,  # type: ignore
-                        )
+                )
                 merge_background_metrics(
                     run_response.metrics,
                     collect_background_metrics(memory_future, cultural_knowledge_future),
@@ -979,7 +979,7 @@ def _run_stream(
                     yield from wait_for_thread_tasks_stream(
                         memory_future=memory_future,  # type: ignore
                         cultural_knowledge_future=cultural_knowledge_future,  # type: ignore
-                                    stream_events=stream_events,
+                        stream_events=stream_events,
                         run_response=run_response,
                         events_to_skip=agent.events_to_skip,
                         store_events=agent.store_events,
@@ -1029,7 +1029,7 @@ def _run_stream(
                 yield from wait_for_thread_tasks_stream(
                     memory_future=memory_future,  # type: ignore
                     cultural_knowledge_future=cultural_knowledge_future,  # type: ignore
-                            stream_events=stream_events,
+                    stream_events=stream_events,
                     run_response=run_response,
                     events_to_skip=agent.events_to_skip,
                     store_events=agent.store_events,
@@ -1630,7 +1630,7 @@ async def _arun(
                     await await_for_open_threads(
                         memory_task=memory_task,
                         cultural_knowledge_task=cultural_knowledge_task,
-                        )
+                    )
                     merge_background_metrics(
                         run_response.metrics,
                         collect_background_metrics(memory_task, cultural_knowledge_task),
@@ -2310,7 +2310,7 @@ async def _arun_stream(
                     async for item in await_for_thread_tasks_stream(
                         memory_task=memory_task,
                         cultural_knowledge_task=cultural_knowledge_task,
-                            stream_events=stream_events,
+                        stream_events=stream_events,
                         run_response=run_response,
                         events_to_skip=agent.events_to_skip,
                         store_events=agent.store_events,
@@ -2568,7 +2568,6 @@ async def _arun_stream(
                 await cultural_knowledge_task
             except asyncio.CancelledError:
                 pass
-
 
         # Always clean up the run tracking
         await acleanup_run(run_response.run_id)  # type: ignore
