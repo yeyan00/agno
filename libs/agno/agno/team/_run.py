@@ -1185,9 +1185,7 @@ def _run(
 
                 # 11. Wait for background memory creation
                 wait_for_open_threads(memory_future=memory_future)  # type: ignore
-                merge_background_metrics(
-                    run_response.metrics, collect_background_metrics(memory_future)
-                )
+                merge_background_metrics(run_response.metrics, collect_background_metrics(memory_future))
 
                 raise_if_cancelled(run_response.run_id)  # type: ignore
 
@@ -1590,14 +1588,12 @@ def _run_stream(
                 yield from wait_for_thread_tasks_stream(
                     run_response=run_response,
                     memory_future=memory_future,  # type: ignore
-                            stream_events=stream_events,
+                    stream_events=stream_events,
                     events_to_skip=team.events_to_skip,  # type: ignore
                     store_events=team.store_events,
                     get_memories_callback=lambda: team.get_user_memories(user_id=user_id),
                 )
-                merge_background_metrics(
-                    run_response.metrics, collect_background_metrics(memory_future)
-                )
+                merge_background_metrics(run_response.metrics, collect_background_metrics(memory_future))
 
                 raise_if_cancelled(run_response.run_id)  # type: ignore
                 # 9. Create session summary
@@ -3685,7 +3681,7 @@ async def _arun_stream(
                 async for event in await_for_thread_tasks_stream(
                     run_response=run_response,
                     memory_task=memory_task,
-                            stream_events=stream_events,
+                    stream_events=stream_events,
                     events_to_skip=team.events_to_skip,  # type: ignore
                     store_events=team.store_events,
                     get_memories_callback=lambda: team.aget_user_memories(user_id=user_id),
