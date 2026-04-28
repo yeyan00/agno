@@ -16,7 +16,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -196,10 +195,12 @@ class TestWaitFunctionsSkipLearning:
         blocking_future = ThreadPoolExecutor(max_workers=1).submit(time.sleep, 5)
         try:
             start = time.monotonic()
-            list(wait_for_thread_tasks_stream(
-                run_response=MagicMock(),
-                learning_future=blocking_future,
-            ))
+            list(
+                wait_for_thread_tasks_stream(
+                    run_response=MagicMock(),
+                    learning_future=blocking_future,
+                )
+            )
             elapsed = time.monotonic() - start
             assert elapsed < 1.0
         finally:
@@ -311,8 +312,8 @@ class TestProcessWithSnapshot:
 
     def test_sync_process_handles_none_learning(self):
         """Should gracefully handle agent with no learning."""
-        from agno.agent.agent import Agent
         from agno.agent._managers import _process_learnings_with_messages
+        from agno.agent.agent import Agent
 
         agent = Agent(name="test")
         agent._learning = None
@@ -399,10 +400,10 @@ class TestTeamManagers:
 
 class TestCollectBackgroundMetrics:
     def test_collects_memory_only(self):
-        from agno.utils.agent import collect_background_metrics
         from concurrent.futures import ThreadPoolExecutor
 
         from agno.metrics import RunMetrics
+        from agno.utils.agent import collect_background_metrics
 
         collector = RunMetrics()
         executor = ThreadPoolExecutor(max_workers=1)

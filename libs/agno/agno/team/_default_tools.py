@@ -60,7 +60,6 @@ from agno.utils.team import (
 )
 from agno.utils.timer import Timer
 
-
 # ---------------------------------------------------------------------------
 # Team → Member run_id mapping for cascade cancellation
 # Maps team_run_id to a set of member_run_ids so that cancelling a team run
@@ -502,10 +501,14 @@ def _get_delegate_task_function(
         # Team's override_member_history takes precedence over member's own setting
         history = None
         member_wants_history = getattr(member_agent, "add_history_to_context", False)
-        should_load_history = team.override_member_history if team.override_member_history is not None else member_wants_history
+        should_load_history = (
+            team.override_member_history if team.override_member_history is not None else member_wants_history
+        )
         if should_load_history:
             history = _get_history_for_member_agent(
-                team, session, member_agent,
+                team,
+                session,
+                member_agent,
                 num_history_runs=team.override_member_num_history_runs,
             )
             if history:
