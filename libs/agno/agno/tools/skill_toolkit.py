@@ -238,8 +238,7 @@ class SkillToolkit(Toolkit):
                 existing = self._skills.get(skill.name)
                 if existing is not None:
                     log_warning(
-                        f"SkillToolkit: duplicate skill name '{skill.name}', "
-                        f"keeping first from {existing.skill_dir}"
+                        f"SkillToolkit: duplicate skill name '{skill.name}', keeping first from {existing.skill_dir}"
                     )
                 else:
                     self._skills[skill.name] = skill
@@ -287,10 +286,7 @@ class SkillToolkit(Toolkit):
         lines = [
             "<skills>",
             "The following skills provide specialized instructions for specific tasks.",
-            (
-                "Use read_file to load the skill's SKILL.md file when "
-                "the task matches its description."
-            ),
+            ("Use read_file to load the skill's SKILL.md file when the task matches its description."),
             (
                 "When a skill file references a relative path, resolve it "
                 "against the skill directory (skill_dir) and use that "
